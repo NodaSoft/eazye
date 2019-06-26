@@ -113,6 +113,7 @@ type Email struct {
 
 	From         *mail.Address   `json:"from"`
 	To           []*mail.Address `json:"to"`
+	Cc           []*mail.Address `json:"cc"`
 	InternalDate time.Time       `json:"internal_date"`
 	Precedence   string          `json:"precedence"`
 	Subject      string          `json:"subject"`
@@ -431,12 +432,18 @@ func NewEmail(msgFields imap.FieldMap) (Email, error) {
 		return email, fmt.Errorf("unable to parse to address: %s", err)
 	}
 
+	cc, err := mail.ParseAddressList(msg.Header.Get("Cc"))
+	if err != nil {
+		return email, fmt.Errorf("unable to parse cc adress: %s", err)
+	}
+
 	email = Email{
 		Message:      msg,
 		InternalDate: imap.AsDateTime(msgFields["INTERNALDATE"]),
 		Precedence:   msg.Header.Get("Precedence"),
 		From:         from,
 		To:           to,
+		Cc:           cc,
 		Subject:      parseSubject(msg.Header.Get("Subject")),
 	}
 
