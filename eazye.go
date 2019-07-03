@@ -427,14 +427,22 @@ func NewEmail(msgFields imap.FieldMap) (Email, error) {
 		return email, fmt.Errorf("unable to parse from address: %s", err)
 	}
 
-	to, err := mail.ParseAddressList(msg.Header.Get("To"))
-	if err != nil {
-		return email, fmt.Errorf("unable to parse to address: %s", err)
+	var (
+		to []*mail.Address
+		cc []*mail.Address
+	)
+	if toHeader := msg.Header.Get("To"); toHeader != "" {
+		to, err = mail.ParseAddressList(toHeader)
+		if err != nil {
+			return email, fmt.Errorf("unable to parse to address: %s", err)
+		}
 	}
 
-	cc, err := mail.ParseAddressList(msg.Header.Get("Cc"))
-	if err != nil {
-		return email, fmt.Errorf("unable to parse cc adress: %s", err)
+	if ccHeader := msg.Header.Get("Cc"); ccHeader != "" {
+		cc, err = mail.ParseAddressList(ccHeader)
+		if err != nil {
+			return email, fmt.Errorf("unable to parse cc address: %s", err)
+		}
 	}
 
 	email = Email{
