@@ -114,6 +114,8 @@ type Email struct {
 	From         *mail.Address   `json:"from"`
 	To           []*mail.Address `json:"to"`
 	Cc           []*mail.Address `json:"cc"`
+	Bcc          []*mail.Address `json:"bcc"`
+	ReplyTo      *mail.Address   `json:"reply_to"`
 	InternalDate time.Time       `json:"internal_date"`
 	Precedence   string          `json:"precedence"`
 	Subject      string          `json:"subject"`
@@ -427,9 +429,18 @@ func NewEmail(msgFields imap.FieldMap) (Email, error) {
 		return email, fmt.Errorf("unable to parse from address: %s", err)
 	}
 
+	var replyTo *mail.Address
+	if replyToHeader := msg.Header.Get("Reply-To"); replyToHeader != "" {
+		replyTo, err = mail.ParseAddress(replyToHeader)
+		if err != nil {
+			return email, fmt.Errorf("unable to parse reply-to address: %s", err)
+		}
+	}
+
 	var (
-		to []*mail.Address
-		cc []*mail.Address
+		to  []*mail.Address
+		cc  []*mail.Address
+		bcc []*mail.Address
 	)
 	if toHeader := msg.Header.Get("To"); toHeader != "" {
 		to, err = mail.ParseAddressList(toHeader)
@@ -445,6 +456,13 @@ func NewEmail(msgFields imap.FieldMap) (Email, error) {
 		}
 	}
 
+	if bccHeader := msg.Header.Get("Bcc"); bccHeader != "" {
+		cc, err = mail.ParseAddressList(bccHeader)
+		if err != nil {
+			return email, fmt.Errorf("unable to parse bcc address: %s", err)
+		}
+	}
+
 	email = Email{
 		Message:      msg,
 		InternalDate: imap.AsDateTime(msgFields["INTERNALDATE"]),
@@ -452,6 +470,8 @@ func NewEmail(msgFields imap.FieldMap) (Email, error) {
 		From:         from,
 		To:           to,
 		Cc:           cc,
+		Bcc:          bcc,
+		ReplyTo:      replyTo,
 		Subject:      parseSubject(msg.Header.Get("Subject")),
 	}
 
